@@ -196,7 +196,30 @@ void ContentsWindow::applyWindowState()
     KX11Extras::clearState(m_windowId, NET::FullScreen | NET::Max);
     KX11Extras::setState(m_windowId, NET::SkipTaskbar | NET::SkipPager | NET::SkipSwitcher | NET::KeepBelow);
 
+    applyBoundingRegion();
     clearInputRegion();
+}
+
+void ContentsWindow::applyBoundingRegion()
+{
+    auto *connection = xcbConnection();
+    if (!connection || !haveXFixes(connection)) {
+        return;
+    }
+
+    if (!m_streamSize.isEmpty()) {
+        // Remove the idle shape so the complete stream is available to X11 capture clients.
+        xcb_xfixes_set_window_shape_region(connection, winId(), XCB_SHAPE_SK_BOUNDING, 0, 0, XCB_NONE);
+        xcb_flush(connection);
+        return;
+    }
+
+    // Keep the idle window mapped and discoverable without leaving any pixels for the compositor to show.
+    const xcb_xfixes_region_t region = xcb_generate_id(connection);
+    xcb_xfixes_create_region(connection, region, 0, nullptr);
+    xcb_xfixes_set_window_shape_region(connection, winId(), XCB_SHAPE_SK_BOUNDING, 0, 0, region);
+    xcb_xfixes_destroy_region(connection, region);
+    xcb_flush(connection);
 }
 
 void ContentsWindow::clearInputRegion()

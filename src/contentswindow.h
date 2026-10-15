@@ -33,6 +33,7 @@ private:
     void syncWindowId();
     void applyGeometry();
     void applyWindowState();
+    void applyBoundingRegion();
     void clearInputRegion();
     QSize constrainToScreen(const QSize &size) const;
 
